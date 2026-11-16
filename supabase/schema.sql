@@ -1,0 +1,234 @@
+-- The Family Tree: database schema for Supabase.
+--
+-- HOW TO USE
+--   1. Change the admin secret near the bottom of this file (search for CHANGE-ME).
+--   2. Paste the whole file into Supabase > SQL Editor and press Run.
+--   It is safe to run more than once.
+--
+-- SECURITY MODEL (the link is public, so every row is treated as untrusted)
+--   * Anyone can READ ornaments.
+--   * Nobody can insert, update or delete rows directly.
+--   * Hanging goes through hang_ornament(), which validates the ornament and
+--     rate-limits it. Removing goes through remove_ornament(), which needs the
+--     creator's private token or the admin secret.
+--   * owner_token holds only a SHA-256 hash of the creator's token, so reading
+--     the table never reveals anything that could be used to delete a row.
+
+-- ---------------------------------------------------------------- table
+
+create table if not exists public.ornaments (
+  id          uuid primary key default gen_random_uuid(),
+  created_at  timestamptz not null default now(),
+  name        text not null default '',
+  bauble      int  not null,
+  strokes     jsonb not null default '[]'::jsonb,
+  photo       text,
+  x           real not null,
+  y           real not null,
+  owner_token text not null,
+
+  constraint ornaments_name_len   check (char_length(name) <= 16),
+  constraint ornaments_bauble     check (bauble between 0 and 5),
+  constraint ornaments_x_range    check (x between 0 and 300),
+  constraint ornaments_y_range    check (y between 0 and 400),
+  constraint ornaments_strokes    check (
+    case when jsonb_typeof(strokes) = 'array'
+         then jsonb_array_length(strokes) <= 60 and length(strokes::text) <= 40000
+         else false end),
+  -- photos are small JPEGs the page shrinks to 240x240 before sending
+  constraint ornaments_photo      check (
+    photo is null
+    or (length(photo) <= 64000
+        and photo ~ '^data:image/jpeg;base64,[A-Za-z0-9+/]+={0,2}$')),
+  constraint ornaments_token_hash check (owner_token ~ '^[0-9a-f]{64}$')
+);
+
+create index if not exists ornaments_created_at_idx on public.ornaments (created_at);
+create index if not exists ornaments_owner_idx on public.ornaments (owner_token, created_at);
+
+-- ---------------------------------------------------------------- row level security
+
+alter table public.ornaments enable row level security;
+
+revoke all on public.ornaments from anon, authenticated;
+grant select on public.ornaments to anon, authenticated;
+
+drop policy if exists "anyone can read ornaments" on public.ornaments;
+create policy "anyone can read ornaments"
+  on public.ornaments for select
+  to anon, authenticated
+  using (true);
+-- No insert / update / delete policies on purpose: those are denied.
+
+-- ---------------------------------------------------------------- admin secret (private)
+
+create schema if not exists private;
+revoke all on schema private from anon, authenticated;
+
+create table if not exists private.tree_admin (
+  id          boolean primary key default true check (id),
+  secret_hash text not null
+);
+alter table private.tree_admin enable row level security;
+revoke all on private.tree_admin from anon, authenticated;
+
+-- ---------------------------------------------------------------- hang an ornament
+
+create or replace function public.hang_ornament(
+  p_name    text,
+  p_bauble  int,
+  p_strokes jsonb,
+  p_photo   text,
+  p_x       real,
+  p_y       real,
+  p_token   text
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_hash   text;
+  v_name   text;
+  v_points bigint;
+  v_bad    bigint;
+  v_id     uuid;
+  v_at     timestamptz;
+begin
+  if p_token is null or length(p_token) < 16 or length(p_token) > 128 then
+    raise exception 'bad_token';
+  end if;
+  v_hash := encode(sha256(convert_to(p_token, 'UTF8')), 'hex');
+
+  -- one insert at a time, so the limits below cannot be raced
+  perform pg_advisory_xact_lock(hashtext('ornaments_hang'));
+
+  -- rate limits: 5 per person per hour, plus safety caps for the whole tree
+  if (select count(*) from ornaments
+       where owner_token = v_hash and created_at > now() - interval '1 hour') >= 5 then
+    raise exception 'rate_limited';
+  end if;
+  if (select count(*) from ornaments
+       where created_at > now() - interval '1 hour') >= 150 then
+    raise exception 'tree_busy';
+  end if;
+  if (select count(*) from ornaments) >= 400 then
+    raise exception 'tree_full';
+  end if;
+
+  -- drawing: [{c: pen index, w: width, p: [x,y,x,y,...]}], 0-100 space
+  if p_strokes is null or jsonb_typeof(p_strokes) <> 'array'
+     or jsonb_array_length(p_strokes) > 60 then
+    raise exception 'bad_strokes';
+  end if;
+
+  select count(*) filter (where
+           jsonb_typeof(s) <> 'object'
+           or jsonb_typeof(s->'c') is distinct from 'number'
+           or jsonb_typeof(s->'w') is distinct from 'number'
+           or jsonb_typeof(s->'p') is distinct from 'array'
+           or (s->>'c')::numeric not between 0 and 5
+           or (s->>'w')::numeric not between 1 and 20),
+         coalesce(sum(case when jsonb_typeof(s->'p') = 'array'
+                           then jsonb_array_length(s->'p') else 0 end), 0)
+    into v_bad, v_points
+    from jsonb_array_elements(p_strokes) as s;
+
+  if v_bad > 0 or v_points > 3200 then          -- 1600 points = 3200 numbers
+    raise exception 'bad_strokes';
+  end if;
+
+  if exists (
+    select 1
+      from jsonb_array_elements(p_strokes) as s,
+           jsonb_array_elements(s->'p') as n
+     where jsonb_typeof(n) <> 'number' or n::text::numeric not between -5 and 105
+  ) then
+    raise exception 'bad_strokes';
+  end if;
+
+  if jsonb_array_length(p_strokes) = 0 and p_photo is null then
+    raise exception 'empty_ornament';
+  end if;
+
+  v_name := left(btrim(regexp_replace(coalesce(p_name, ''), '[[:cntrl:]]', '', 'g')), 16);
+
+  -- the table's check constraints validate everything else (ranges, photo format, sizes)
+  insert into ornaments (name, bauble, strokes, photo, x, y, owner_token)
+  values (v_name, p_bauble, p_strokes, p_photo, p_x, p_y, v_hash)
+  returning id, created_at into v_id, v_at;
+
+  return jsonb_build_object('id', v_id, 'created_at', v_at);
+end;
+$$;
+
+-- ---------------------------------------------------------------- remove an ornament
+
+create or replace function public.remove_ornament(
+  p_id    uuid,
+  p_token text default null,
+  p_admin text default null
+) returns boolean
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_placeholder constant text := encode(sha256(convert_to('CHANGE-ME', 'UTF8')), 'hex');
+  v_admin_hash  text;
+  v_count       int;
+begin
+  -- admin: the secret from the ?admin=... link
+  if p_admin is not null and length(p_admin) between 8 and 128 then
+    select secret_hash into v_admin_hash from private.tree_admin where id;
+    if v_admin_hash is not null
+       and v_admin_hash <> v_placeholder
+       and v_admin_hash = encode(sha256(convert_to(p_admin, 'UTF8')), 'hex') then
+      delete from ornaments where id = p_id;
+      get diagnostics v_count = row_count;
+      return v_count > 0;
+    end if;
+  end if;
+
+  -- creator: the random token kept in their browser
+  if p_token is not null and length(p_token) between 16 and 128 then
+    delete from ornaments
+     where id = p_id
+       and owner_token = encode(sha256(convert_to(p_token, 'UTF8')), 'hex');
+    get diagnostics v_count = row_count;
+    return v_count > 0;
+  end if;
+
+  return false;
+end;
+$$;
+
+revoke all on function public.hang_ornament(text, int, jsonb, text, real, real, text) from public;
+revoke all on function public.remove_ornament(uuid, text, text) from public;
+grant execute on function public.hang_ornament(text, int, jsonb, text, real, real, text) to anon, authenticated;
+grant execute on function public.remove_ornament(uuid, text, text) to anon, authenticated;
+
+-- ---------------------------------------------------------------- realtime
+
+-- Broadcast inserts and deletes to every open page.
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (
+       select 1 from pg_publication_tables
+        where pubname = 'supabase_realtime'
+          and schemaname = 'public' and tablename = 'ornaments') then
+    alter publication supabase_realtime add table public.ornaments;
+  end if;
+end;
+$$;
+
+-- ---------------------------------------------------------------- YOUR ADMIN SECRET
+
+-- Replace CHANGE-ME with a long secret of your own (8-128 characters, letters
+-- and numbers only so it is easy to put in a link). Your admin link is then:
+--   https://<your site>/?admin=<that secret>
+-- Admin removal stays switched off while this still says CHANGE-ME.
+insert into private.tree_admin (id, secret_hash)
+values (true, encode(sha256(convert_to('CHANGE-ME', 'UTF8')), 'hex'))
+on conflict (id) do update set secret_hash = excluded.secret_hash;
