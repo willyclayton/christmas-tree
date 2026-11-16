@@ -230,5 +230,5 @@ $$;
 --   https://<your site>/?admin=<that secret>
 -- Admin removal stays switched off while this still says CHANGE-ME.
 insert into private.tree_admin (id, secret_hash)
-values (true, encode(sha256(convert_to('CHANGE-ME', 'UTF8')), 'hex'))
+values (true, encode(sha256(convert_to('RICHIECHRISTMAS', 'UTF8')), 'hex'))
 on conflict (id) do update set secret_hash = excluded.secret_hash;
