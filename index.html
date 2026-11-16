@@ -83,7 +83,7 @@ footer{flex:none;padding:8px 16px 14px;display:flex;gap:10px;justify-content:cen
 .btn-ghost{color:var(--panel-ink);background:#fff;box-shadow:0 3px 0 #c9d4e8,0 10px 22px rgba(10,20,50,.25)}
 .btn-quiet{color:var(--panel-ink);background:#f1e9dc}
 .btn-danger{color:#fff;background:#b3261e}
-#mainBtn{width:min(100%,360px)}
+#mainBtn{flex:1;max-width:360px}
 #placeBar{display:none;gap:10px;width:min(100%,420px)}
 #placeBar .btn-primary{flex:1}
 body.placing #mainBtn{display:none}
@@ -171,13 +171,39 @@ body.placing #demoNote{display:none}
 #viewer .x{position:absolute;right:12px;top:12px;background:rgba(255,255,255,.14);color:#fff}
 #viewer .sheet{position:relative}
 
+/* likes */
+.like{display:inline-flex;align-items:center;gap:8px;min-height:46px;padding:0 18px;border-radius:999px;font-weight:800;font-size:17px;
+  color:#fff;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.3);margin:0 0 14px;transition:transform .12s}
+.like:active{transform:scale(.94)}
+.like svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.like[aria-pressed=true]{background:var(--gold);border-color:var(--gold);color:#3b2a00}
+.like[aria-pressed=true] svg{fill:rgba(255,255,255,.55)}
+#viewMeta{margin-bottom:10px!important}
+#boardBtn{flex:none;width:54px;padding:0}
+body.placing #boardBtn{display:none}
+.sec{font-size:12px;font-weight:800;color:var(--panel-soft);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 6px}
+#podium{display:flex;gap:8px;justify-content:center}
+.pod{flex:1;max-width:130px;display:flex;flex-direction:column;align-items:center;padding:8px 4px 10px;border-radius:16px;background:#fff;
+  box-shadow:0 0 0 1.5px var(--line);position:relative;min-width:0}
+.pod>svg{width:74px;display:block}
+.pod .nm,.cell .nm{font-family:var(--hand);font-size:21px;font-weight:700;line-height:1.15;max-width:100%;padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.medal{position:absolute;left:6px;top:6px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;color:#3b2a00}
+.medal.m1{background:#f5c542}.medal.m2{background:#cfd6e0}.medal.m3{background:#dba36a}
+.ups{font-size:13px;font-weight:800;color:#8a6a00;display:inline-flex;align-items:center;gap:3px}
+.ups svg{width:13px;height:13px;fill:#f5c542;stroke:#8a6a00;stroke-width:2;stroke-linejoin:round}
+#podiumEmpty{color:var(--panel-soft);font-size:15px;text-align:center;padding:6px 0}
+#nerd{margin-top:18px;border-top:1.5px solid var(--line);padding-top:10px}
+#nerd summary{font-weight:800;font-size:15px;cursor:pointer;padding:6px 0;color:var(--panel-ink)}
+#nerdList{margin:6px 0 0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:14px}
+#nerdList dt{color:var(--panel-soft);font-weight:700}
+#nerdList dd{margin:0;font-weight:800;text-align:right;-webkit-user-select:text;user-select:text}
+
 /* gallery */
 #gallery .sheet{max-height:86dvh}
 #grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:10px 6px;margin-top:8px}
 .cell{display:flex;flex-direction:column;align-items:center;padding:6px 2px;border-radius:14px}
 .cell:active{background:#f1e9dc}
-.cell svg{width:66px;display:block}
-.cell span{font-family:var(--hand);font-size:20px;font-weight:700;line-height:1.15;max-width:100%;padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cell>svg{width:66px;display:block}
 #galleryEmpty{text-align:center;color:var(--panel-soft);padding:24px 0}
 
 /* tutorial */
@@ -276,6 +302,9 @@ body.placing #demoNote{display:none}
       <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-5L16.5 3.5a2.1 2.1 0 013 3L8 18l-4 2z" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/></svg>
       Doodle an ornament
     </button>
+    <button id="boardBtn" class="btn btn-ghost" aria-label="Most liked and stats">
+      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#a8182c" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 01-8 0zM8 6H5a3 3 0 003 3M16 6h3a3 3 0 01-3 3M12 13v4M8 20h8M10 17h4"/></svg>
+    </button>
     <div id="placeBar">
       <button id="placeBack" class="btn btn-ghost">Back</button>
       <button id="hangBtn" class="btn btn-primary">Hang it here</button>
@@ -335,6 +364,10 @@ body.placing #demoNote{display:none}
     <svg id="viewSvg" viewBox="-4 -20 108 126"></svg>
     <p id="viewName"></p>
     <p id="viewMeta"></p>
+    <button id="likeBtn" class="like" aria-pressed="false">
+      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>
+      <span id="likeText">Like</span>
+    </button>
     <div class="viewBtns">
       <button id="viewRemove" class="btn btn-danger" hidden>Remove</button>
       <button class="btn btn-ghost" data-close>Close</button>
@@ -346,11 +379,21 @@ body.placing #demoNote{display:none}
 <div id="gallery" class="scrim" role="dialog" aria-modal="true" aria-labelledby="galTitle">
   <div class="sheet">
     <div class="sheet-head">
-      <h2 id="galTitle">Everyone's ornaments</h2>
+      <h2 id="galTitle">The tree so far</h2>
       <button class="x" data-close aria-label="Close">×</button>
     </div>
-    <div id="grid"></div>
     <div id="galleryEmpty" hidden>No ornaments yet. Be the first!</div>
+    <div id="boardBody">
+      <div class="sec">Most liked</div>
+      <div id="podium"></div>
+      <div id="podiumEmpty" hidden>No likes yet. Tap an ornament and give it a thumbs up!</div>
+      <div class="sec">Everyone's ornaments</div>
+      <div id="grid"></div>
+      <details id="nerd">
+        <summary>Stats for nerds</summary>
+        <dl id="nerdList"></dl>
+      </details>
+    </div>
   </div>
 </div>
 
@@ -408,7 +451,7 @@ body.placing #demoNote{display:none}
 
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="config.js?v=3"></script>
+<script src="config.js?v=4"></script>
 <script>
 (() => {
 'use strict';
@@ -458,6 +501,7 @@ function uuid() {
 let token = store.get('tree-token', '');
 if (typeof token !== 'string' || token.length < 16) { token = randomToken(); store.set('tree-token', token); }
 const myIds = new Set(store.get('tree-mine', []));
+const liked = new Set(store.get('tree-liked', []));
 
 /* ================================================================ tree shape */
 function halfWidth(y) {
@@ -503,6 +547,7 @@ function cleanRow(r) {
     bauble: clamp(Math.floor(Number(r.bauble)) || 0, 0, BAUBLES.length - 1),
     strokes: cleanStrokes(r.strokes),
     photo, x, y,
+    likes: clamp(Math.floor(Number(r.likes)) || 0, 0, 99999),
     at: Number.isFinite(t) ? t : Date.now()
   };
 }
@@ -769,7 +814,8 @@ function freeSpot() {
 }
 
 /* ================================================================ backend */
-const COLS = 'id,created_at,name,bauble,strokes,photo,x,y';
+const BASE_COLS = 'id,created_at,name,bauble,strokes,photo,x,y';
+let likesOn = true;        // turns off if the database has not been updated for likes yet
 
 function demoBackend() {
   const KEY = 'tree-demo-rows';
@@ -788,8 +834,15 @@ function demoBackend() {
       if (bc) bc.postMessage({ t: 'delete', id });
       return true;
     },
-    subscribe(onInsert, onDelete) {
-      if (bc) bc.onmessage = e => e.data.t === 'insert' ? onInsert(e.data.row) : onDelete(e.data.id);
+    async like(id, on) {
+      const rows = read(), r = rows.find(x => x.id === id); if (!r) return 0;
+      r.likes = Math.max(0, (r.likes || 0) + (on ? 1 : -1)); store.set(KEY, rows);
+      if (bc) bc.postMessage({ t: 'update', row: { id, likes: r.likes } });
+      return r.likes;
+    },
+    subscribe(onInsert, onDelete, onUpdate) {
+      if (bc) bc.onmessage = e => e.data.t === 'insert' ? onInsert(e.data.row)
+        : e.data.t === 'update' ? onUpdate(e.data.row) : onDelete(e.data.id);
     }
   };
 }
@@ -809,7 +862,9 @@ function liveBackend() {
   return {
     async list() {
       await ready;
-      const { data, error } = await sb.from('ornaments').select(COLS).order('created_at', { ascending: true }).limit(500);
+      const get = cols => sb.from('ornaments').select(cols).order('created_at', { ascending: true }).limit(500);
+      let { data, error } = await get(likesOn ? BASE_COLS + ',likes' : BASE_COLS);
+      if (error && likesOn && /likes/.test(error.message || '')) { likesOn = false; ({ data, error } = await get(BASE_COLS)); }
       if (error) throw error;
       return data;
     },
@@ -827,10 +882,17 @@ function liveBackend() {
       if (error) throw error;
       return data === true;
     },
-    subscribe(onInsert, onDelete) {
+    async like(id, on) {
+      await ready;
+      const { data, error } = await sb.rpc('like_ornament', { p_id: id, p_token: token, p_on: on });
+      if (error) throw error;
+      return Number(data);
+    },
+    subscribe(onInsert, onDelete, onUpdate) {
       ready.then(() => {
         sb.channel('ornaments-live')
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ornaments' }, p => onInsert(p.new))
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'ornaments' }, p => onUpdate(p.new))
           .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'ornaments' }, p => onDelete(p.old && p.old.id))
           .subscribe();
       }).catch(() => {});
@@ -849,7 +911,7 @@ async function sync() {
     const seen = new Set();
     for (const raw of Array.isArray(rows) ? rows : []) {
       const o = cleanRow(raw); if (!o) continue;
-      seen.add(o.id); addOrn(o, loaded);
+      seen.add(o.id); addOrn(o, loaded); setLikes(o.id, o.likes);
     }
     const now = Date.now();
     for (const [id, e] of orns) if (!seen.has(id) && now - e.addedAt > 15000) removeOrn(id);
@@ -892,8 +954,34 @@ function view(id) {
   $('#viewName').textContent = e.o.name || 'A mystery elf';
   $('#viewMeta').textContent = 'Hung ' + ago(e.o.at);
   $('#viewRemove').hidden = !(ADMIN || myIds.has(id));
+  paintLike();
   open('viewer');
 }
+
+/* ---------- likes ---------- */
+function paintLike() {
+  const e = orns.get(viewing), b = $('#likeBtn');
+  b.hidden = !likesOn || !e; if (!e) return;
+  const on = liked.has(viewing), n = e.o.likes;
+  b.setAttribute('aria-pressed', on);
+  $('#likeText').textContent = (on ? 'Liked' : 'Like') + (n > 0 ? ' · ' + n : '');
+}
+function setLikes(id, n) {
+  const e = orns.get(id); if (!e || !Number.isFinite(n) || e.o.likes === n) return;
+  e.o.likes = clamp(Math.floor(n), 0, 99999);
+  if (viewing === id) paintLike();
+  if ($('#gallery').classList.contains('open')) renderBoard();
+}
+let likeBusy = false;
+$('#likeBtn').addEventListener('click', async () => {
+  const id = viewing, e = orns.get(id); if (!e || likeBusy) return;
+  const on = !liked.has(id), was = e.o.likes; likeBusy = true;
+  const mark = v => { v ? liked.add(id) : liked.delete(id); store.set('tree-liked', [...liked]); };
+  mark(on); setLikes(id, Math.max(0, was + (on ? 1 : -1))); paintLike();
+  try { const n = await backend.like(id, on); if (Number.isFinite(n)) setLikes(id, n); }
+  catch { mark(!on); setLikes(id, was); paintLike(); toast('Could not save that. Check your connection.'); }
+  finally { likeBusy = false; }
+});
 $('#viewRemove').addEventListener('click', async () => {
   const id = viewing; if (!id) return;
   if (!confirm('Take this ornament off the tree?')) return;
@@ -905,21 +993,105 @@ $('#viewRemove').addEventListener('click', async () => {
   } catch { toast('Could not remove it. Check your connection.'); }
 });
 
-/* ---------- gallery ---------- */
-$('#count').addEventListener('click', () => {
-  if (!loaded) return sync();
-  const grid = $('#grid'); grid.replaceChildren();
+/* ---------- leaderboard, everyone, stats ---------- */
+const BALL_NAMES = ['Red', 'Gold', 'Blue', 'Purple', 'Pink', 'Snow white'];
+const PEN_NAMES  = ['White', 'Black', 'Red', 'Green', 'Yellow', 'Blue'];
+const who = o => o.name || 'A mystery elf';
+function thumb() {
+  const s = el('svg', { viewBox: '0 0 24 24' });
+  s.append(el('path', { d: 'M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3' }));
+  return s;
+}
+function card(o, cls, medal) {
+  const b = document.createElement('button'); b.className = cls;
+  const s = el('svg', { viewBox: '-4 -20 108 126' }); s.append(buildOrnament(o).g);
+  const n = document.createElement('span'); n.className = 'nm'; n.textContent = o.name || 'mystery elf';
+  b.append(s, n);
+  if (medal) { const m = document.createElement('i'); m.className = 'medal m' + medal; m.textContent = medal; b.append(m); }
+  if (likesOn && o.likes > 0) {
+    const u = document.createElement('span'); u.className = 'ups'; u.append(thumb(), String(o.likes)); b.append(u);
+  }
+  b.addEventListener('click', () => view(o.id));
+  return b;
+}
+function mode(list) {           // most common value -> [value, count]
+  const m = new Map(); let best = null, bn = 0;
+  for (const v of list) { const n = (m.get(v) || 0) + 1; m.set(v, n); if (n > bn) { bn = n; best = v; } }
+  return [best, bn];
+}
+function stats(all) {
+  const out = [], add = (k, v) => out.push([k, v]);
+  const os = all.map(e => e.o), n = os.length;
+  const plural = (c, w) => `${c} ${w}${c === 1 ? '' : 's'}`;
+  const people = new Map();
+  for (const o of os) {
+    const k = o.name.toLowerCase(), p = people.get(k) || { name: who(o), n: 0, likes: 0 };
+    p.n++; p.likes += o.likes; people.set(k, p);
+  }
+  const ppl = [...people.values()];
+  add('Ornaments on the tree', String(n));
+  add('People who joined in', String(ppl.length));
+  const top = ppl.reduce((a, b) => b.n > a.n ? b : a);
+  add('Most ornaments', `${top.name} (${top.n})`);
+  const pts = o => o.strokes.reduce((t, s) => t + s.p.length / 2, 0);
+  const busy = os.reduce((a, b) => b.strokes.length > a.strokes.length ? b : a);
+  if (busy.strokes.length) add('Most pen strokes', `${who(busy)} (${busy.strokes.length})`);
+  const detail = os.reduce((a, b) => pts(b) > pts(a) ? b : a);
+  if (pts(detail)) add('Most detailed doodle', `${who(detail)} (${pts(detail)} points)`);
+  const quick = os.filter(o => o.strokes.length).reduce((a, b) => !a || b.strokes.length < a.strokes.length ? b : a, null);
+  if (quick && quick !== busy) add('Fewest pen strokes', `${who(quick)} (${quick.strokes.length})`);
+  add('Total pen strokes', String(os.reduce((t, o) => t + o.strokes.length, 0)));
+  let ink = 0;
+  for (const o of os) for (const s of o.strokes) for (let i = 2; i < s.p.length; i += 2) ink += Math.hypot(s.p[i] - s.p[i - 2], s.p[i + 1] - s.p[i - 1]);
+  add('Ink used', `${(ink / 100).toFixed(1)} ornament-widths`);
+  const [hr, hn] = mode(os.map(o => new Date(o.at).getHours()));
+  add('Busiest hour (your time)', `${hr % 12 || 12} ${hr < 12 ? 'AM' : 'PM'} (${hn})`);
+  const [day, dn] = mode(os.map(o => new Date(o.at).toLocaleDateString(undefined, { weekday: 'long' })));
+  add('Busiest day', `${day} (${dn})`);
+  const [ball, balln] = mode(os.map(o => o.bauble));
+  add('Favorite ball color', `${BALL_NAMES[ball]} (${balln})`);
+  const pens = os.flatMap(o => o.strokes.map(s => s.c));
+  if (pens.length) { const [pen, pn] = mode(pens); add('Favorite pen color', `${PEN_NAMES[pen]} (${plural(pn, 'stroke')})`); }
+  const photos = os.filter(o => o.photo).length;
+  add('Photos vs. doodles', `${photos} / ${n - photos}`);
+  if (likesOn) {
+    const total = os.reduce((t, o) => t + o.likes, 0);
+    add('Thumbs up given', String(total));
+    const fav = ppl.reduce((a, b) => b.likes > a.likes ? b : a);
+    if (fav.likes) add('Most liked person', `${fav.name} (${fav.likes})`);
+  }
+  const high = os.reduce((a, b) => b.y < a.y ? b : a);
+  add('Closest to the star', who(high));
+  const first = os.reduce((a, b) => b.at < a.at ? b : a), last = os.reduce((a, b) => b.at > a.at ? b : a);
+  const when = t => new Date(t).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  add('First ornament', `${who(first)}, ${when(first.at)}`);
+  add('Newest ornament', `${who(last)}, ${when(last.at)}`);
+  return out;
+}
+function renderBoard() {
   const all = [...orns.values()].sort((a, b) => b.o.at - a.o.at);
   $('#galleryEmpty').hidden = all.length > 0;
-  for (const { o } of all) {
-    const b = document.createElement('button'); b.className = 'cell';
-    const s = el('svg', { viewBox: '-4 -20 108 126' }); s.append(buildOrnament(o).g);
-    const n = document.createElement('span'); n.textContent = o.name || 'mystery elf';
-    b.append(s, n); b.addEventListener('click', () => view(o.id));
-    grid.append(b);
+  $('#boardBody').hidden = all.length === 0;
+  if (!all.length) return;
+  const top = likesOn ? all.filter(e => e.o.likes > 0).sort((a, b) => b.o.likes - a.o.likes || a.o.at - b.o.at).slice(0, 3) : [];
+  $('#podium').replaceChildren(...top.map((e, i) => card(e.o, 'pod', i + 1)));
+  $('#podium').hidden = !top.length;
+  $('#podiumEmpty').hidden = top.length > 0;
+  $('#podiumEmpty').textContent = likesOn ? 'No likes yet. Tap an ornament and give it a thumbs up!' : 'Likes are not switched on yet.';
+  $('#grid').replaceChildren(...all.map(e => card(e.o, 'cell')));
+  const rows = [];
+  for (const [k, v] of stats(all)) {
+    const dt = document.createElement('dt'), dd = document.createElement('dd');
+    dt.textContent = k; dd.textContent = v; rows.push(dt, dd);
   }
-  open('gallery');
-});
+  $('#nerdList').replaceChildren(...rows);
+}
+function openBoard() {
+  if (!loaded) return sync();
+  closeAll(); renderBoard(); open('gallery');
+}
+$('#count').addEventListener('click', openBoard);
+$('#boardBtn').addEventListener('click', openBoard);
 
 /* ---------- tutorial ---------- */
 let tourStep = 0, tourTimer = 0;
@@ -1166,7 +1338,8 @@ if (ADMIN) toast('Admin mode: tap an ornament, then Remove.', 4500);
 
 backend.subscribe(
   raw => { const o = cleanRow(raw); if (o) addOrn(o, true); },
-  id => { if (typeof id === 'string') removeOrn(id.toLowerCase()); }
+  id => { if (typeof id === 'string') removeOrn(id.toLowerCase()); },
+  raw => { if (raw && typeof raw.id === 'string' && raw.likes != null) setLikes(raw.id.toLowerCase(), Number(raw.likes)); }
 );
 sync().then(() => { if (!store.get('tree-toured', 0) && !ADMIN) startTour(); });
 setInterval(() => { if (!document.hidden) sync(); }, 30000);

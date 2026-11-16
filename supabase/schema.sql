@@ -10,7 +10,8 @@
 --   * Nobody can insert, update or delete rows directly.
 --   * Hanging goes through hang_ornament(), which validates the ornament and
 --     rate-limits it. Removing goes through remove_ornament(), which needs the
---     creator's private token or the admin secret.
+--     creator's private token or the admin secret. Thumbs up go through
+--     like_ornament(): one per person per ornament.
 --   * owner_token holds only a SHA-256 hash of the creator's token, so reading
 --     the table never reveals anything that could be used to delete a row.
 
@@ -42,6 +43,9 @@ create table if not exists public.ornaments (
         and photo ~ '^data:image/jpeg;base64,[A-Za-z0-9+/]+={0,2}$')),
   constraint ornaments_token_hash check (owner_token ~ '^[0-9a-f]{64}$')
 );
+
+-- thumbs-up count, kept up to date by like_ornament()
+alter table public.ornaments add column if not exists likes int not null default 0;
 
 create index if not exists ornaments_created_at_idx on public.ornaments (created_at);
 create index if not exists ornaments_owner_idx on public.ornaments (owner_token, created_at);
@@ -202,6 +206,64 @@ begin
   return false;
 end;
 $$;
+
+-- ---------------------------------------------------------------- thumbs up
+
+-- One row per (ornament, person). Private: only like_ornament() touches it.
+create table if not exists public.ornament_likes (
+  ornament_id uuid not null references public.ornaments (id) on delete cascade,
+  voter       text not null check (voter ~ '^[0-9a-f]{64}$'),
+  created_at  timestamptz not null default now(),
+  primary key (ornament_id, voter)
+);
+alter table public.ornament_likes enable row level security;
+revoke all on public.ornament_likes from anon, authenticated;
+
+-- Give (p_on = true) or take back (false) a thumbs up. One per person per
+-- ornament. Returns the ornament's new like count.
+create or replace function public.like_ornament(
+  p_id    uuid,
+  p_token text,
+  p_on    boolean default true
+) returns int
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_hash  text;
+  v_likes int;
+begin
+  if p_token is null or length(p_token) < 16 or length(p_token) > 128 then
+    raise exception 'bad_token';
+  end if;
+  v_hash := encode(sha256(convert_to(p_token, 'UTF8')), 'hex');
+
+  if not exists (select 1 from ornaments where id = p_id) then
+    return 0;
+  end if;
+
+  if coalesce(p_on, true) then
+    if (select count(*) from ornament_likes where voter = v_hash) >= 500 then
+      raise exception 'too_many_likes';
+    end if;
+    insert into ornament_likes (ornament_id, voter) values (p_id, v_hash)
+    on conflict do nothing;
+  else
+    delete from ornament_likes where ornament_id = p_id and voter = v_hash;
+  end if;
+
+  update ornaments
+     set likes = (select count(*) from ornament_likes where ornament_id = p_id)
+   where id = p_id
+  returning likes into v_likes;
+
+  return coalesce(v_likes, 0);
+end;
+$$;
+
+revoke all on function public.like_ornament(uuid, text, boolean) from public;
+grant execute on function public.like_ornament(uuid, text, boolean) to anon, authenticated;
 
 revoke all on function public.hang_ornament(text, int, jsonb, text, real, real, text) from public;
 revoke all on function public.remove_ornament(uuid, text, text) from public;

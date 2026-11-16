@@ -66,6 +66,12 @@ fully, but ornaments are saved only in your own browser.
    `https://tree.willyclayton.com/og.png` so the text-message preview keeps
    working.
 
+## Updating the database later
+
+When `supabase/schema.sql` changes (for example, to add a feature), paste
+the whole file into the SQL Editor and run it again. It keeps your ornaments,
+likes and admin secret.
+
 ## Removing an ornament
 
 - **Your own:** tap it, then **Remove** (works from the browser you made it in).
@@ -83,6 +89,9 @@ fully, but ornaments are saved only in your own browser.
   they are sent.
 - The page treats every row as untrusted: values are clamped, colors come
   from a fixed palette, and names are inserted as plain text.
+- Anyone can give an ornament a thumbs up (one per person per ornament). The
+  trophy button shows the three most liked, every ornament, and a "Stats for
+  nerds" section.
 - Ornaments shrink slightly as the tree fills, new ones are offered the
   emptiest spot, and the counter at the top opens a list of every ornament.
 - Live updates use Supabase Realtime. The page also re-checks every 30
