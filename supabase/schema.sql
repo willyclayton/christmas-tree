@@ -27,6 +27,7 @@ create table if not exists public.ornaments (
   x           real not null,
   y           real not null,
   owner_token text not null,
+  likes       int  not null default 0,   -- thumbs-up count
 
   constraint ornaments_name_len   check (char_length(name) <= 16),
   constraint ornaments_bauble     check (bauble between 0 and 5),
@@ -44,7 +45,8 @@ create table if not exists public.ornaments (
   constraint ornaments_token_hash check (owner_token ~ '^[0-9a-f]{64}$')
 );
 
--- thumbs-up count, kept up to date by like_ornament()
+-- For databases created before likes existed: add the column. (New ones
+-- already have it from the table above.) Kept up to date by like_ornament().
 alter table public.ornaments add column if not exists likes int not null default 0;
 
 create index if not exists ornaments_created_at_idx on public.ornaments (created_at);
