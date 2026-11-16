@@ -206,7 +206,7 @@ body.placing #demoNote{display:none}
 
 /* toast */
 #toast{position:fixed;left:50%;top:calc(18px + env(safe-area-inset-top));transform:translate(-50%,-260%);visibility:hidden;z-index:30;
-  background:#fff;color:var(--panel-ink);font-weight:800;padding:12px 18px;border-radius:16px;max-width:92vw;text-align:center;
+  background:#fff;color:var(--panel-ink);font-weight:800;padding:12px 18px;border-radius:16px;width:max-content;max-width:92vw;text-align:center;
   box-shadow:0 12px 34px rgba(0,0,0,.4);transition:transform .35s cubic-bezier(.2,.9,.3,1.2),visibility 0s .35s}
 #toast.on{transform:translate(-50%,0);visibility:visible;transition-delay:0s}
 
@@ -408,7 +408,7 @@ body.placing #demoNote{display:none}
 
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="config.js?v=2"></script>
+<script src="config.js?v=3"></script>
 <script>
 (() => {
 'use strict';
@@ -422,7 +422,7 @@ const ADMIN = new URLSearchParams(location.search).get('admin') || '';
 const BAUBLES = ['#d7263d', '#e9b52a', '#2f6fd6', '#7d3fc0', '#e8679c', '#eef2f8'];
 const PENS    = ['#ffffff', '#1d1d28', '#e02b3c', '#1fa35a', '#ffcf3f', '#2f7fe6'];
 const WIDTHS  = [3, 6, 11];
-const LIMITS  = { strokes: 60, points: 1600, name: 16, photo: 64000 };
+const LIMITS  = { strokes: 60, points: 1600, name: 16, photo: 64000, mine: 3 };
 const PHOTO_RE = /^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/;
 const UUID_RE  = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TREE = { cx: 150, top: 52, bottom: 338, baseHalf: 116 };
@@ -694,7 +694,7 @@ function startSnow() {
 
 function layout() {
   const m = $('main').getBoundingClientRect();
-  const h = Math.min(m.height, m.width * 4 / 3 * 1.1), w = h * .75;
+  const h = Math.min(m.height, m.width * 4 / 3 * 1.2), w = h * .75;
   const st = $('#stage'); st.style.width = w + 'px'; st.style.height = h + 'px';
   $('#ground').style.top = (m.bottom - h * (1 - 351 / 400)) + 'px';
 }
@@ -1071,7 +1071,11 @@ $('#photoRemove').addEventListener('click', () => { photoSrc = null; draft.photo
 const nameIn = $('#nameIn');
 nameIn.value = String(store.get('tree-name', '')).slice(0, LIMITS.name);
 nameIn.addEventListener('keydown', e => { if (e.key === 'Enter') nameIn.blur(); });
-$('#mainBtn').addEventListener('click', () => { closeAll(); renderPad(); setPadMode(padMode); open('draw'); });
+const LIMIT_MSG = `You've hung your ${LIMITS.mine} ornaments! Tap one of yours and remove it to make another.`;
+const mineOnTree = () => [...myIds].filter(id => orns.has(id)).length;
+$('#mainBtn').addEventListener('click', () => {
+  if (!ADMIN && mineOnTree() >= LIMITS.mine) return toast(LIMIT_MSG, 5000);
+  closeAll(); renderPad(); setPadMode(padMode); open('draw'); });
 
 /* ================================================================ pick a spot + hang */
 let pend = null;   // {o, node, x, y, r}
@@ -1127,7 +1131,7 @@ treeSvg.addEventListener('click', e => {
 });
 
 const HANG_ERRORS = {
-  rate_limited: "That's a lot of ornaments! Give it an hour, then hang some more.",
+  limit_reached: LIMIT_MSG,
   tree_busy: 'The tree is very busy right now. Try again in a little while.',
   tree_full: 'The tree is completely full!',
   empty_ornament: 'Draw something or add a photo first!'

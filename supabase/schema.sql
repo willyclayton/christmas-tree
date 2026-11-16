@@ -1,8 +1,8 @@
 -- The Family Tree: database schema for Supabase.
 --
 -- HOW TO USE
---   1. Change the admin secret near the bottom of this file (search for CHANGE-ME).
---   2. Paste the whole file into Supabase > SQL Editor and press Run.
+--   1. Paste the whole file into Supabase > SQL Editor and press Run.
+--   2. Set your admin secret with the one statement shown at the bottom.
 --   It is safe to run more than once.
 --
 -- SECURITY MODEL (the link is public, so every row is treated as untrusted)
@@ -103,10 +103,10 @@ begin
   -- one insert at a time, so the limits below cannot be raced
   perform pg_advisory_xact_lock(hashtext('ornaments_hang'));
 
-  -- rate limits: 5 per person per hour, plus safety caps for the whole tree
-  if (select count(*) from ornaments
-       where owner_token = v_hash and created_at > now() - interval '1 hour') >= 5 then
-    raise exception 'rate_limited';
+  -- limits: 3 ornaments per person (remove one to hang another), plus
+  -- safety caps for the whole tree
+  if (select count(*) from ornaments where owner_token = v_hash) >= 3 then
+    raise exception 'limit_reached';
   end if;
   if (select count(*) from ornaments
        where created_at > now() - interval '1 hour') >= 150 then
@@ -225,10 +225,15 @@ $$;
 
 -- ---------------------------------------------------------------- YOUR ADMIN SECRET
 
--- Replace CHANGE-ME with a long secret of your own (8-128 characters, letters
--- and numbers only so it is easy to put in a link). Your admin link is then:
---   https://<your site>/?admin=<that secret>
--- Admin removal stays switched off while this still says CHANGE-ME.
+-- Admin removal stays switched off until you set a secret. Do NOT edit this
+-- file to do it. After running this file, run this one statement in the SQL
+-- Editor with your own secret (8-128 letters and numbers) in the quotes:
+--
+--   update private.tree_admin
+--   set secret_hash = encode(sha256(convert_to('YOUR-SECRET-HERE', 'UTF8')), 'hex');
+--
+-- Your admin link is then:  https://<your site>/?admin=<that secret>
+-- Re-running this file later keeps the secret you already set.
 insert into private.tree_admin (id, secret_hash)
 values (true, encode(sha256(convert_to('CHANGE-ME', 'UTF8')), 'hex'))
-on conflict (id) do update set secret_hash = excluded.secret_hash;
+on conflict (id) do nothing;

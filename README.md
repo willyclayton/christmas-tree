@@ -18,11 +18,17 @@ fully, but ornaments are saved only in your own browser.
 
 1. Sign up at [supabase.com](https://supabase.com) and create a new project
    (the free plan is plenty).
-2. Open `supabase/schema.sql`, find `CHANGE-ME` near the bottom, and replace
-   it with a long secret of your own (letters and numbers). This is your
-   admin password for removing ornaments.
-   Do not commit your real secret to this repository: edit it only in the copy you paste into Supabase.
-3. In Supabase, open **SQL Editor**, paste the whole file, and press **Run**.
+2. In Supabase, open **SQL Editor**, paste the whole of
+   `supabase/schema.sql`, and press **Run**.
+3. Set your admin secret (your password for removing ornaments). Clear the
+   editor, paste this with your own secret in the quotes, and press **Run**:
+
+   ```sql
+   update private.tree_admin
+   set secret_hash = encode(sha256(convert_to('YOUR-SECRET-HERE', 'UTF8')), 'hex');
+   ```
+
+   Never put the real secret in this repository.
 
 ### 2. Connect the page
 
@@ -71,7 +77,7 @@ fully, but ornaments are saved only in your own browser.
 - Anyone can read the ornaments; nobody can write to the table directly.
   Hanging and removing go through two database functions that check
   everything.
-- Limits: 5 ornaments per person per hour, 150 per hour for the whole tree,
+- Limits: 3 ornaments per person (per browser), 150 per hour for the whole tree,
   400 in total. Names are capped at 16 characters, drawings at 60 strokes /
   1600 points, photos are shrunk to a 240 x 240 JPEG in the browser before
   they are sent.
