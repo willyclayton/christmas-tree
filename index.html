@@ -513,8 +513,9 @@ function clampToTree(x, y, r) {
   const hw = Math.max(0, halfWidth(y) - r * 0.6 - 7);
   return [clamp(x, TREE.cx - hw, TREE.cx + hw), y];
 }
-// Ornaments shrink a little as the tree fills up so ~50+ still fit.
-function ornRadius(n) { return clamp(13.5 - 0.075 * n, 8, 13); }
+// Ornaments shrink as the tree fills so they keep covering about the same
+// share of it: full size up to ~35, then smaller and smaller (fits 300+).
+function ornRadius(n) { return clamp(Math.sqrt(3000 / Math.max(1, n)), 3.6, 9.2); }
 
 /* ================================================================ untrusted rows */
 function cleanStrokes(raw) {
@@ -790,7 +791,7 @@ function svgPoint(svg, ev) {
 }
 // Tap picks the nearest ornament, so small ones are still easy to hit.
 function ornAt(x, y) {
-  const r = ornRadius(orns.size), reach = Math.max(r * 1.25, 12);
+  const r = ornRadius(orns.size), reach = Math.max(r * 1.3, 9);
   let best = null, bd = Infinity;
   for (const [id, { o }] of orns) {
     const [ox, oy] = clampToTree(o.x, o.y, r), d = Math.hypot(ox - x, oy - y);
@@ -1257,7 +1258,7 @@ $('#toPlace').addEventListener('click', () => {
   store.set('tree-name', name);
   const o = { name, bauble: draft.bauble, strokes: cleanStrokes(draft.strokes), photo: draft.photo };
   closeAll();
-  const r = ornRadius(orns.size + 1) * 1.25;
+  const r = Math.max(ornRadius(orns.size + 1) * 1.25, 8);
   const [x, y] = freeSpot();
   const node = el('g');
   const built = buildOrnament(o, { shadow: true });
