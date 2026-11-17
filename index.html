@@ -514,8 +514,8 @@ function clampToTree(x, y, r) {
   return [clamp(x, TREE.cx - hw, TREE.cx + hw), y];
 }
 // Ornaments shrink as the tree fills so they keep covering about the same
-// share of it: full size up to ~35, then smaller and smaller (fits 300+).
-function ornRadius(n) { return clamp(Math.sqrt(3000 / Math.max(1, n)), 3.6, 9.2); }
+// share of it: big up to ~27, then smaller and smaller (still fits 300+).
+function ornRadius(n) { return clamp(Math.sqrt(4600 / Math.max(1, n)), 3.6, 13); }
 
 /* ================================================================ untrusted rows */
 function cleanStrokes(raw) {
